@@ -11,6 +11,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 
@@ -29,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        MusicFragment musicFragment = MusicFragment.newInstance(getMusic());
 
 
         binding.bottomNav.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
@@ -36,7 +38,10 @@ public class MainActivity extends AppCompatActivity {
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
 
                 if(item.getItemId() == R.id.nav_player){
-                    //
+                    getSupportFragmentManager()
+                            .beginTransaction()
+                            .replace(R.id.fragmentContainerView, musicFragment) // использовать ваш ID контейнера
+                            .commit();
                 } else if (item.getItemId() == R.id.nav_recorder) {
                     //
                 }
@@ -58,11 +63,24 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<String> arrayList = new ArrayList<>();
 
         ContentResolver contentResolver = getContentResolver();
-
         Uri songUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
-        Cursor songCursor = contentResolver.query(songUri, null, null, null, null);
+        String selection = MediaStore.Audio.Media.DATA + " like ?";
+        String[] selectionArgs = new String[]{"%sdcard/Music/%"};
 
+
+        Cursor songCursor = contentResolver.query(songUri, null, selection, selectionArgs, null);
+        if (songCursor != null) {
+            Log.d("MyApp", "Cursor is not null, count: " + songCursor.getCount());
+        } else {
+            Log.d("MyApp", "Cursor is null");
+        }
+
+        if (songCursor != null && songCursor.moveToFirst()) {
+            // ...
+        } else {
+            Log.d("MyApp", "Cursor is empty or cannot move to first");
+        }
         if (songCursor != null && songCursor.moveToFirst()) {
             int songTitle = songCursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
 
@@ -70,6 +88,7 @@ public class MainActivity extends AppCompatActivity {
                 String currentTitle = songCursor.getString(songTitle);
                 arrayList.add(currentTitle);
             } while (songCursor.moveToNext());
+            songCursor.close();
         }
         return arrayList;
     }
