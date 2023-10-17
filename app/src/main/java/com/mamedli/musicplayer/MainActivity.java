@@ -1,14 +1,18 @@
 package com.mamedli.musicplayer;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -19,18 +23,36 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.mamedli.musicplayer.databinding.ActivityMainBinding;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     public static final int MY_PERMISSION_REQUEST = 100;
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        MusicFragment musicFragment = MusicFragment.newInstance(getMusic());
+
+        ArrayList<String> audioFiles = getAudioFiles(this);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            Log.d("Permissions", "Requesting READ_MEDIA_AUDIO");
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.READ_MEDIA_AUDIO},
+                    MY_PERMISSION_REQUEST);
+        } else {
+            Log.d("Permissions", "READ_MEDIA_AUDIO already granted");
+        }
+
+
+        for (String audioFile : audioFiles) {
+            Log.d("AudioFiles", "Title: " + audioFile);
+        }
+        MusicFragment musicFragment = MusicFragment.newInstance(audioFiles);
 
 
         binding.bottomNav.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
@@ -50,47 +72,27 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+    public ArrayList<String> getAudioFiles(Context context) {
+        ArrayList<String> audioFiles = new ArrayList<>();
+        String selection = MediaStore.Audio.Media.IS_MUSIC + "!= 0";
+        String[] projection = {MediaStore.Audio.Media.TITLE};
+        Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_MEDIA_AUDIO)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE},
-                    MY_PERMISSION_REQUEST);
+        try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int songTitle = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+               // int dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+                do {
+                    //String audioFilePath = cursor.getString(dataColumn);
+                    String currentTitle = cursor.getString(songTitle);
+                    audioFiles.add(currentTitle);
+                } while (cursor.moveToNext());
+            }
         }
+
+        return audioFiles;
     }
 
-    public ArrayList<String> getMusic() {
-        ArrayList<String> arrayList = new ArrayList<>();
-
-        ContentResolver contentResolver = getContentResolver();
-        Uri songUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-
-        String selection = MediaStore.Audio.Media.DATA + " like ?";
-        String[] selectionArgs = new String[]{"%sdcard/Music/%"};
-
-
-        Cursor songCursor = contentResolver.query(songUri, null, selection, selectionArgs, null);
-        if (songCursor != null) {
-            Log.d("MyApp", "Cursor is not null, count: " + songCursor.getCount());
-        } else {
-            Log.d("MyApp", "Cursor is null");
-        }
-
-        if (songCursor != null && songCursor.moveToFirst()) {
-            // ...
-        } else {
-            Log.d("MyApp", "Cursor is empty or cannot move to first");
-        }
-        if (songCursor != null && songCursor.moveToFirst()) {
-            int songTitle = songCursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
-
-            do {
-                String currentTitle = songCursor.getString(songTitle);
-                arrayList.add(currentTitle);
-            } while (songCursor.moveToNext());
-            songCursor.close();
-        }
-        return arrayList;
-    }
 
 }

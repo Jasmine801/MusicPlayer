@@ -5,6 +5,7 @@ import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,13 +13,14 @@ import android.view.ViewGroup;
 import com.mamedli.musicplayer.databinding.FragmentMusicBinding;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class MusicFragment extends Fragment {
 
     private FragmentMusicBinding binding;
     private static final String MUSIC_LIST = "music_list";
 
-    public ArrayList<String> musicList;
+    private ArrayList<String> musicList;
 
     public static MusicFragment newInstance(ArrayList<String> musicList) {
         MusicFragment musicFragment = new MusicFragment();
@@ -47,16 +49,13 @@ public class MusicFragment extends Fragment {
         binding = FragmentMusicBinding.inflate(inflater, container, false);
 
         setupRecyclerView();
-        return inflater.inflate(R.layout.fragment_music, container, false);
+        return binding.getRoot();
     }
 
     private void setupRecyclerView(){
-        binding.rvMusicList.setLayoutManager(new LinearLayoutManager(getContext()));
-
         MusicAdapter musicAdapter = new MusicAdapter(musicList);
-
+        binding.rvMusicList.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.rvMusicList.setAdapter(musicAdapter);
-
     }
 
     @Override
