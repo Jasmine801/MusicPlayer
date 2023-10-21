@@ -5,6 +5,8 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.Manifest;
 import android.content.ContentResolver;
@@ -29,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     public static final int MY_PERMISSION_REQUEST = 100;
+    private MusicViewModel musicViewModel;
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
@@ -36,6 +39,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        musicViewModel = new ViewModelProvider(this).get(MusicViewModel.class);
+        musicViewModel.setMusicList(getAudioFiles(this));
 
         ArrayList<String> audioFiles = getAudioFiles(this);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO)
@@ -52,7 +58,12 @@ public class MainActivity extends AppCompatActivity {
         for (String audioFile : audioFiles) {
             Log.d("AudioFiles", "Title: " + audioFile);
         }
-        MusicFragment musicFragment = MusicFragment.newInstance(audioFiles);
+
+        MusicFragment musicFragment = new MusicFragment();
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.fragmentContainerView, musicFragment);
+        ft.commit();
+
 
 
         binding.bottomNav.setOnItemSelectedListener(new BottomNavigationView.OnItemSelectedListener() {
@@ -73,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
+
     public ArrayList<String> getAudioFiles(Context context) {
         ArrayList<String> audioFiles = new ArrayList<>();
         String selection = MediaStore.Audio.Media.IS_MUSIC + "!= 0";
@@ -82,9 +94,7 @@ public class MainActivity extends AppCompatActivity {
         try (Cursor cursor = context.getContentResolver().query(uri, projection, selection, null, null)) {
             if (cursor != null && cursor.moveToFirst()) {
                 int songTitle = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
-               // int dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
                 do {
-                    //String audioFilePath = cursor.getString(dataColumn);
                     String currentTitle = cursor.getString(songTitle);
                     audioFiles.add(currentTitle);
                 } while (cursor.moveToNext());
